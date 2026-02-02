@@ -8,6 +8,8 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const sessions = {};
+
 
 const SYSTEM_PROMPT = `
 You are Kora, a friendly Norwegian AI assistant.
@@ -19,6 +21,16 @@ Keep answers short, helpful, and polite.
 
 app.post("/whatsapp", async (req, res) => {
   const userMessage = req.body.Body;
+  const from = req.body.From;
+
+  if (!sessions[from]) {
+    sessions[from] = [
+      { role: "system", content: SYSTEM_PROMPT }
+    ];
+  }
+
+  sessions[from].push({ role: "user", content: userMessage });
+
 
   try {
     const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -29,16 +41,15 @@ app.post("/whatsapp", async (req, res) => {
       },
       body: JSON.stringify({
         model: "gpt-4.1-mini",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userMessage }
-        ],
+       messages: sessions[from],
         temperature: 0.7
       })
     });
 
     const data = await openaiResponse.json();
     const reply = data.choices[0].message.content;
+    sessions[from].push({ role: "assistant", content: reply });
+
 
     const twilioResponse = `
 <Response>
