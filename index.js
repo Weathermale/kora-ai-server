@@ -83,3 +83,63 @@ app.get("/", (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("Server running on port " + PORT));
+
+app.post("/scrape", async (req, res) => {
+  const { url } = req.body;
+
+  if (!url) {
+    return res.status(400).json({ error: "Missing URL" });
+  }
+
+  try {
+    const pageResponse = await fetch(url);
+    const html = await pageResponse.text();
+
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gpt-4.1-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are a data extractor. Extract structured business information from the following webpage text."
+          },
+          {
+            role: "user",
+            content: `
+Extract the following fields from this webpage:
+- Business name
+- Address
+- Check-in instructions
+- House rules
+- Wifi info
+- Parking info
+- Nearby attractions
+- FAQ
+
+Return as JSON.
+
+Webpage content:
+${html.slice(0, 12000)}
+`
+          }
+        ],
+        temperature: 0
+      })
+    });
+
+    const data = await openaiResponse.json();
+    const extracted = data.choices[0].message.content;
+
+    res.json({ extracted });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Scraping failed" });
+  }
+});
+
