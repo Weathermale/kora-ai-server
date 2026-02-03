@@ -41,17 +41,18 @@ app.post("/whatsapp", async (req, res) => {
 
   try {
     const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "gpt-4.1-mini",
-       messages: sessions[from],
-        temperature: 0.7
-      })
-    });
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${OPENAI_API_KEY}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    model: "gpt-4.1-mini",
+    messages: sessions[from],
+    temperature: 0.7
+  })
+});
+
 
     const data = await openaiResponse.json();
     const reply = data.choices[0].message.content;
